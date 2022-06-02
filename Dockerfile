@@ -1,4 +1,4 @@
-FROM google/cloud-sdk:latest
+FROM google/cloud-sdk:latest as uw-gcp-task
 
 ADD scripts /scripts
 
