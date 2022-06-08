@@ -8,16 +8,12 @@ BACKUP_DATE=$(date '+%Y-%m-%d')
 BACKUP_NAME_BASE=$(hostname)-${BACKUP_DATE}.${BACKUP_LEVEL}
 BACKUP_LIST_FILE=/tmp/list.${BACKUP_DATE}.${BACKUP_LEVEL}
 
-GCLOUD_AUTH_FILE=/gcs/credentials.json
 BUCKET_OBJECT_BASE=gs://${BACKUP_BUCKET}/${BACKUP_NAME_BASE}
 
 BACKUP_TAR_OBJECT=${BACKUP_OBJECT_BASE}.tar
 BACKUP_LIST_OBJECT=${BACKUP_OBJECT_BASE}.list
 
 START_TIME=$(date +%s)
-
-gcloud auth activate-service-account --key-file $GCLOUD_AUTH_FILE
-EXIT_STATUS=$?
 
 if [[ $EXIT_STATUS = 0 ]]; then
     echo "Level ${BACKUP_LEVEL} backup of ${BACKUP_SOURCE_PATH} to ${BACKUP_OBJECT_BASE}.tar"

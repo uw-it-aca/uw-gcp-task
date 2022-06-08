@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
-/etc/init.d/cron start
+gcloud auth activate-service-account --key-file $GCLOUD_AUTH_FILE
 
-exit 0
+# execute passed command
+$*
