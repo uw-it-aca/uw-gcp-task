@@ -9,4 +9,4 @@ ADD scripts /scripts
 
 RUN chmod -R +x /scripts
 
-CMD ["/scripts/start.sh"]
+ENTRYPOINT ["/scripts/start.sh"]
