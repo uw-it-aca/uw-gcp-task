@@ -5,34 +5,47 @@ BACKUP_SOURCE_PATH=${2}
 BACKUP_BUCKET=${3}
 
 BACKUP_DATE=$(date '+%Y-%m-%d')
-BACKUP_NAME_BASE=$(hostname)-${BACKUP_DATE}.${BACKUP_LEVEL}
+BACKUP_NAME_BASE=$(hostname).${BACKUP_DATE}.${BACKUP_LEVEL}
 BACKUP_LIST_FILE=/tmp/list.${BACKUP_DATE}.${BACKUP_LEVEL}
 
 BUCKET_OBJECT_BASE=gs://${BACKUP_BUCKET}/${BACKUP_NAME_BASE}
 
-BACKUP_TAR_OBJECT=${BACKUP_OBJECT_BASE}.tar
-BACKUP_LIST_OBJECT=${BACKUP_OBJECT_BASE}.list
+INDEX=0
+INDEX_TAG=""
+MAX_INDEX=10
+while true; do
+    BACKUP_TAR_OBJECT=${BUCKET_OBJECT_BASE}${INDEX_TAG}.tar
+    BACKUP_LIST_OBJECT=${BUCKET_OBJECT_BASE}${INDEX_TAG}.list
+    LS=$(gsutil ls ${BACKUP_TAR_OBJECT} 2>&1)
+    if [[ $? -ne 0 ]]; then
+        break
+    fi
+
+    INDEX=$(( $INDEX + 1 ))
+    INDEX_TAG="-(${INDEX})"
+
+    if [[$INDEX -eq $MAX_INDEX]]; then
+        echo "Backup name conflict limit reached: ${LS}"
+        exit 1
+    fi
+    echo "Backup object name conflict ${BACKUP_TAR_OBJECT}"
+done
 
 START_TIME=$(date +%s)
 
-if [[ $EXIT_STATUS = 0 ]]; then
-    echo "Level ${BACKUP_LEVEL} backup of ${BACKUP_SOURCE_PATH} to ${BACKUP_OBJECT_BASE}.tar"
+echo "Backing up (level ${BACKUP_LEVEL}) ${BACKUP_SOURCE_PATH} to ${BACKUP_TAR_OBJECT}"
 
-    if [[ $BACKUP_LEVEL = "0" ]]; then
-        tar -cvvpf - 2>${BACKUP_LIST_FILE} ${BACKUP_SOURCE_PATH} | gsutil cp - ${BACKUP_TAR_OBJECT}
-        EXIT_STATUS=$?
-    else
-        echo "Not prepared to for level ${BACKUP_LEVEL} backup yet"
-        EXIT_STATUS=1
-    fi
-
-    echo "Upload backup inventory"
-    gsutil cp ${BACKUP_LIST_FILE} ${BACKUP_LIST_OBJECT}
+if [[ $BACKUP_LEVEL = "0" ]]; then
+    tar -cvvpf - 2>${BACKUP_LIST_FILE} ${BACKUP_SOURCE_PATH} | gsutil cp - ${BACKUP_TAR_OBJECT}
     EXIT_STATUS=$?
 else
-    echo "Unable to access "
+    echo "Not prepared for level ${BACKUP_LEVEL} backup yet"
     EXIT_STATUS=1
 fi
+
+echo "Upload backup inventory ${BACKUP_LIST_OBJECT}"
+gsutil cp ${BACKUP_LIST_FILE} ${BACKUP_LIST_OBJECT}
+EXIT_STATUS=$?
 
 EXIT_TIME=$(date +%s)
 RUN_TIME=$(( EXIT_TIME - START_TIME ))
